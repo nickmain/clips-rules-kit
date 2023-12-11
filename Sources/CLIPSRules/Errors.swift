@@ -48,11 +48,11 @@ public enum CLIPSRetractError: LocalizedError {
     case ruleNetworkError
     
     static func from(_ err: RetractError) -> CLIPSRetractError {
-        switch err {
-        case RE_NULL_POINTER_ERROR: return .nullPointer
-        case RE_COULD_NOT_RETRACT_ERROR: return couldNotRetract
-        case RE_RULE_NETWORK_ERROR: return ruleNetworkError
-        default: return .other(err)
+        return switch err {
+        case RE_NULL_POINTER_ERROR:      .nullPointer
+        case RE_COULD_NOT_RETRACT_ERROR: .couldNotRetract
+        case RE_RULE_NETWORK_ERROR:      .ruleNetworkError
+        default: .other(err)
         }
     }
     
@@ -67,14 +67,36 @@ public enum CLIPSUnmakeInstanceError: LocalizedError {
     case ruleNetworkError
 
     static func from(_ err: UnmakeInstanceError) -> CLIPSUnmakeInstanceError {
-        switch err {
-        case UIE_NULL_POINTER_ERROR: return .nullPointer
-        case UIE_COULD_NOT_DELETE_ERROR: return .couldNotDelete
-        case UIE_DELETED_ERROR: return .alreadyDeleted
-        case UIE_RULE_NETWORK_ERROR: return .ruleNetworkError
-        default: return .other(err)
+        return switch err {
+        case UIE_NULL_POINTER_ERROR:     .nullPointer
+        case UIE_COULD_NOT_DELETE_ERROR: .couldNotDelete
+        case UIE_DELETED_ERROR:          .alreadyDeleted
+        case UIE_RULE_NETWORK_ERROR:     .ruleNetworkError
+        default: .other(err)
         }
     }
 
     public var errorDescription: String? { "CLIPSUnmakeInstanceError: \(self)" }
+}
+
+public enum CLIPSAddUDFError: LocalizedError {
+    case other(AddUDFError)
+    case noError
+    case minExceedsMax
+    case functionNameInUse
+    case invalidArgumentType
+    case invalidReturnType
+
+    static func from(_ err: AddUDFError) -> CLIPSAddUDFError {
+        return switch err {
+        case AUE_NO_ERROR:                    .noError
+        case AUE_MIN_EXCEEDS_MAX_ERROR:       .minExceedsMax
+        case AUE_FUNCTION_NAME_IN_USE_ERROR:  .functionNameInUse
+        case AUE_INVALID_ARGUMENT_TYPE_ERROR: .invalidArgumentType
+        case AUE_INVALID_RETURN_TYPE_ERROR:   .invalidReturnType
+        default: .other(err)
+        }
+    }
+
+    public var errorDescription: String? { "CLIPSAddUDFError: \(self)" }
 }

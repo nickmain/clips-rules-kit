@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CLIPSRules",
     platforms: [
-        .macOS(.v13), .iOS(.v16), .tvOS(.v16), .watchOS(.v8)
+        .macOS(.v14), .iOS(.v17), .tvOS(.v17), .watchOS(.v9)
     ],
     products: [
         .library(
@@ -13,11 +13,17 @@ let package = Package(
         .library(
             name: "CLIPSRules",
             targets: ["CLIPSRules"]),
+        .library(
+            name: "CLIPSConstructModels",
+            targets: ["CLIPSConstructModels"]),
     ],
     dependencies: [],
     targets: [
         .target(
             name: "CLIPSCore",
+            dependencies: []),
+        .target(
+            name: "CLIPSConstructModels",
             dependencies: []),
         .target(
             name: "CLIPSRules",

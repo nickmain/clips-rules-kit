@@ -1,7 +1,7 @@
 // Copyright (c) 2023 David N Main - All Rights Reserved.
 
 import Foundation
-import os
+import OSLog
 import CLIPSCore
 
 public typealias ClipsEnv = UnsafeMutablePointer<Environment>
@@ -13,19 +13,21 @@ public typealias UserDefFunc = ((UnsafeMutablePointer<Environment>?,
 class DefaultHandler: CLIPSOutputHandler {
     func handle(line: CLIPSOutputLine) {
         switch line {
-        case .stdout(line: let line): print("🔸 \(line)")
-        case .error(line: let line): print("🆘 \(line)")
-        case .warning(line: let line): print("⚠️ \(line)")
-        case .named(name: let name, line: let line):
-            print("🔹 \(name): \(line)")
+        case .stdout(line: let line): CLIPS.defaultOutputLogger.info("\(line)")
+        case .error(line: let line): CLIPS.defaultOutputLogger.error("\(line)")
+        case .warning(line: let line): CLIPS.defaultOutputLogger.warning("\(line)")
+        case .named(name: let name, line: let line): CLIPS.defaultOutputLogger.info("\(name): \(line)")
         }
     }
 }
 
 /// An instance of the CLIPS engine.
 public actor CLIPS {
-    /// The ``Logger`` to use
-    public static var logger = Logger()
+    /// The ``Logger`` to use for debug and warning messages
+    public static var logger = Logger(subsystem: "CLIPS", category: "DEBUG")
+
+    /// The ``Logger`` to use for default output
+    public static var defaultOutputLogger = Logger(subsystem: "CLIPS", category: "DefaultOutput")
 
     private let env: ClipsEnv
     private let router: Router
@@ -47,7 +49,10 @@ public actor CLIPS {
         env = CreateEnvironment()
 
         let ptr = env
+
+        #if DEBUG
         Self.logger.debug("🔆 CLIPS: CreateEnvironment \(String(describing: ptr))")
+        #endif
 
         router.addStdOut()
         router.addStdErr()
@@ -61,7 +66,11 @@ public actor CLIPS {
 
     deinit {
         let ptr = env
+        
+        #if DEBUG
         Self.logger.debug("♻️ CLIPS: DestroyEnvironment \(String(describing: ptr))")
+        #endif
+
         env.pointee.context = nil
         DestroyEnvironment(env)
     }
@@ -97,9 +106,16 @@ public actor CLIPS {
     /// - Returns: number of rules that were fired
     @discardableResult
     public func run(count: Int64 = -1 ) -> Int64 {
+        #if DEBUG
         Self.logger.debug("🔻 CLIPS: running rules (count: \(count))")
+        #endif
+
         let actual = Run(env, count)
+        
+        #if DEBUG
         Self.logger.debug("🔺 CLIPS: finished rules (actual: \(actual))")
+        #endif
+
         return actual
     }
 

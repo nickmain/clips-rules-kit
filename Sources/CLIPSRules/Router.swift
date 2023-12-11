@@ -100,14 +100,15 @@ func routerWriteFunction(_ env: ClipsEnv?,
 func routerExitFunction(_ env: ClipsEnv?,
                         _ code: Int32,
                         _ context: UnsafeMutableRawPointer?) {
-    print("🤷 routerExitFunction called with code \(code)")
+    CLIPS.logger.info("Router Exit Function called with code \(code)")
 }
 
 func routerReadFunction(_ env: ClipsEnv?,
                         _ logicalName: UnsafePointer<CChar>?,
                         _ context: UnsafeMutableRawPointer?) -> Int32 {
     // Reading is not supported
-    print("😡 routerReadFunction")
+    let name = if let logicalName { String(cString: logicalName) } else { "<???>" }
+    CLIPS.logger.warning("Reading from CLIPS router is not implemented; name: \(name)")
     return -1 // EOF
 }
 
@@ -116,6 +117,7 @@ func routerUnreadFunction(_ env: ClipsEnv?,
                           _ char: Int32,
                           _ context: UnsafeMutableRawPointer?) -> Int32 {
     // not supported
-    print("😡 routerUnreadFunction")
+    let name = if let logicalName { String(cString: logicalName) } else { "<???>" }
+    CLIPS.logger.warning("Unreading from CLIPS router is not implemented; name: \(name)")
     return -1 // EOF
 }
