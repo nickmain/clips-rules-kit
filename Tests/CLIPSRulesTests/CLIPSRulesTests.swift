@@ -51,10 +51,20 @@ final class CLIPSRulesTests: CLIPSTestBase {
         }
 
         XCTAssertEqual(Foo.count, 0)
-        var extAddr = clips.createExternalAddress(Foo())
+        var strongFoo: Foo? = Foo()
+        weak var weakFoo = strongFoo
+        var extAddr = clips.createExternalAddress(weakFoo!)
+        strongFoo = nil
         XCTAssertEqual(Foo.count, 1)
+        XCTAssertNotNil(weakFoo)
+        clips.retain(extAddr)
+        clips.gc()
+        XCTAssertEqual(Foo.count, 1)
+        XCTAssertNotNil(weakFoo)
+        clips.release(extAddr)
         clips.gc()
         XCTAssertEqual(Foo.count, 0) // Foo was deinited by gc
+        XCTAssertNil(weakFoo)
 
         let foo = Foo()
         extAddr = clips.createExternalAddress(foo)
@@ -66,6 +76,7 @@ final class CLIPSRulesTests: CLIPSTestBase {
         extAddr = clips.createExternalAddress(foo2)
         if let foo3 = clips.object(from: extAddr) as? Foo {
             XCTAssertTrue(foo3 === foo2)
+            XCTAssertEqual(CFGetRetainCount(foo), 3)
         } else {
             XCTFail("Ext Addr object not retrieved")
         }
