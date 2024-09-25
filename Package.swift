@@ -14,6 +14,12 @@ let package = Package(
             name: "CLIPSRules",
             targets: ["CLIPSRules"]),
         .library(
+            name: "CLIPSInteraction",
+            targets: ["CLIPSInteraction"]),
+        .library(
+            name: "CLIPSUI",
+            targets: ["CLIPSUI"]),
+        .library(
             name: "CLIPSConstructModels",
             targets: ["CLIPSConstructModels"]),
     ],
@@ -28,6 +34,13 @@ let package = Package(
         .target(
             name: "CLIPSRules",
             dependencies: ["CLIPSCore"]),
+        .target(
+            name: "CLIPSInteraction",
+            dependencies: ["CLIPSCore", "CLIPSRules"],
+            resources: [.copy("Resources/samples")]),
+        .target(
+            name: "CLIPSUI",
+            dependencies: ["CLIPSInteraction"]),
         .testTarget(
             name: "CLIPSRulesTests",
             dependencies: ["CLIPSRules"],
