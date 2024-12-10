@@ -1,16 +1,16 @@
 ;;-------------------------------------------------------------
-;; CLIPS Interaction Constructs
+;; Optional support constructs
 ;;
 ;; Copyright (C) 2024 David N Main - All Rights Reserved.
 ;; See LICENSE file for permitted uses.
 ;;-------------------------------------------------------------
 
-(defmodule CLIPSInteraction
-    "CLIPS Interaction Constructs"
+(defmodule CLIPSRules
+    "CLIPSRules support constructs"
     (export ?ALL))
 
-(defclass CLIPSInteraction::CLIPSInteraction
-    ""
+(defclass CLIPSRules::NativeObject
+    "Parent class holding an external object in order to manage its lifetime"
     (is-a USER)
     (role abstract)
 [<pattern-match-role>]

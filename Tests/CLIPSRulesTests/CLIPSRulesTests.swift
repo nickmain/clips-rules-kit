@@ -1,10 +1,13 @@
 // Copyright (c) 2023 David N Main
 
-import XCTest
+import Foundation
+import Testing
 @testable import CLIPSRules
 
-final class CLIPSRulesTests: CLIPSTestBase {
-    func testSanity() throws {
+final class CLIPSRules: CLIPSTest {
+
+    @Test
+    func sanity() throws {
         clips.watch(for: .rules, enabled: true)
         clips.addLogicalIO(name: "zebra")
         clips.printBanner()
@@ -27,58 +30,75 @@ final class CLIPSRulesTests: CLIPSTestBase {
         clips.run()
     }
 
-    func testFunctionCall() throws {
+    @Test
+    func functionCall() throws {
         try clips.load(path: try pathFor(sample: "test1"))
         let result = try clips.call("foo", .integer(2), .integer(3), .string("Hello World"))
-        XCTAssertEqual(result, .integer(5))
+        #expect(result == .integer(5))
 
         let result2 = try clips.call("assert-bar",
                                      .symbol("hello"),
                                      .symbol("world"))
 
         if case let .fact(fact) = result2 {
-            XCTAssertTrue(clips.factExists(fact))
+            #expect(clips.factExists(fact))
         } else {
-            XCTFail("result was not a fact")
+            Issue.record("result was not a fact")
         }
     }
 
-    func testExternalAddress() throws {
+    @Test
+    func externalAddress() throws {
         class Foo {
             static var count = 0
             init() { Self.count += 1 }
             deinit { Self.count -= 1 }
         }
 
-        XCTAssertEqual(Foo.count, 0)
+        #expect(Foo.count == 0)
         var strongFoo: Foo? = Foo()
         weak var weakFoo = strongFoo
         var extAddr = clips.createExternalAddress(weakFoo!)
         strongFoo = nil
-        XCTAssertEqual(Foo.count, 1)
-        XCTAssertNotNil(weakFoo)
+        #expect(Foo.count == 1)
+        #expect(weakFoo != nil)
         clips.retain(extAddr)
         clips.gc()
-        XCTAssertEqual(Foo.count, 1)
-        XCTAssertNotNil(weakFoo)
+        #expect(Foo.count == 1)
+        #expect(weakFoo != nil)
         clips.release(extAddr)
         clips.gc()
-        XCTAssertEqual(Foo.count, 0) // Foo was deinited by gc
-        XCTAssertNil(weakFoo)
+        #expect(Foo.count == 0) // Foo was deinited by gc
+        #expect(weakFoo == nil)
 
-        let foo = Foo()
-        extAddr = clips.createExternalAddress(foo)
-        XCTAssertEqual(Foo.count, 1)
+        strongFoo = Foo()
+        extAddr = clips.createExternalAddress(strongFoo!)
+        #expect(Foo.count == 1)
         clips.gc()
-        XCTAssertEqual(Foo.count, 1) // Foo was not release by gc
+        #expect(Foo.count == 1) // Foo was not released by gc
 
-        let foo2 = Foo()
-        extAddr = clips.createExternalAddress(foo2)
-        if let foo3 = clips.object(from: extAddr) as? Foo {
-            XCTAssertTrue(foo3 === foo2)
-            XCTAssertEqual(CFGetRetainCount(foo), 3)
-        } else {
-            XCTFail("Ext Addr object not retrieved")
-        }
+        // object(from:) gets same object and has a retain
+        strongFoo = Foo()
+        weakFoo = strongFoo
+        #expect(Foo.count == 1)
+        extAddr = clips.createExternalAddress(strongFoo!)
+
+        var strongFoo2: Foo? = clips.object(from: extAddr) as? Foo
+        weak var weakFoo2 = strongFoo2
+        #expect(Foo.count == 1)
+        #expect(strongFoo2 != nil)
+        #expect(strongFoo2 === strongFoo)
+
+        // release extAddr and strongFoo - strongFoo2 should still retain
+        clips.gc()
+        strongFoo = nil
+        #expect(weakFoo != nil)
+        #expect(weakFoo2 != nil)
+        #expect(Foo.count == 1)
+
+        strongFoo2 = nil
+        #expect(weakFoo == nil)
+        #expect(weakFoo2 == nil)
+        #expect(Foo.count == 0)
     }
 }
