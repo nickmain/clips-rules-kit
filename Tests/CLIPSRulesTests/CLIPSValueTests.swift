@@ -1,39 +1,44 @@
 // Copyright (c) 2023 David N Main
 
-import XCTest
-import CLIPSCore
-import CLIPSRules
+import Testing
+@testable import CLIPSRules
 
-final class CLIPSValueTests: CLIPSTestBase {
+final class CLIPSValueTests: CLIPSTest {
 
+    @Test
     func testString() throws {
         let value = try clips.eval("\"hello\"")
-        XCTAssertEqual(value, .string("hello"))
+        #expect(value == .string("hello"))
     }
 
+    @Test
     func testFloat() throws {
         let value = try clips.eval("3.4")
-        XCTAssertEqual(value, .float(3.4))
+        #expect(value == .float(3.4))
     }
 
+    @Test
     func testInteger() throws {
         let value = try clips.eval("21")
-        XCTAssertEqual(value, .integer(21))
+        #expect(value == .integer(21))
     }
 
+    @Test
     func testBool() throws {
         let value = try clips.eval("TRUE")
-        XCTAssertEqual(value, .boolean(true))
+        #expect(value == .boolean(true))
     }
 
+    @Test
     func testSymbol() throws {
         let value = try clips.eval("hello")
-        XCTAssertEqual(value, .symbol("hello"))
+        #expect(value == .symbol("hello"))
     }
 
+    @Test
     func testMultifield() throws {
         let value = try clips.eval("(create$ 1 FALSE foo \"hello\" 9.1)")
-        XCTAssertEqual(value, .multifield([
+        #expect(value == .multifield([
             .integer(1), .boolean(false), .symbol("foo"), .string("hello"), .float(9.1)
         ]))
     }
