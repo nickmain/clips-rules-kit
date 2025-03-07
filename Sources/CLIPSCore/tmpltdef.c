@@ -368,6 +368,9 @@ static void DestroyDeftemplate(
   Environment *theEnv,
   Deftemplate *theDeftemplate)
   {
+
+    SWIFT_TEMPLATE_RELEASE(theDeftemplate)
+    
 #if (! BLOAD_ONLY) && (! RUN_TIME)
    struct templateSlot *slotPtr, *nextSlot;
 #endif

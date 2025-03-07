@@ -1151,6 +1151,7 @@ Fact *CreateFact(
    /*===============================*/
 
    newFact->whichDeftemplate = theDeftemplate;
+   SETUP_NEW_SWIFT_FACT(theDeftemplate, newFact)
 
    return newFact;
   }
@@ -1538,6 +1539,8 @@ Fact *CreateFactBySize(
 
    theFact->theProposition.length = size;
    theFact->theProposition.busyCount = 0;
+
+   theFact->swiftFact = NULL;
 
    return(theFact);
   }

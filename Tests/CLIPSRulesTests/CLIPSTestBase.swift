@@ -5,8 +5,8 @@ import XCTest
 import CLIPSRules
 
 class CLIPSTest {
-    let engine = CLIPS.Engine()
-    let clips: CLIPS.Environment
+    var engine = CLIPS.Engine()
+    var clips: CLIPS.Environment
 
     init() {
         clips = engine.environment

@@ -714,6 +714,8 @@ void DuplicateCommand(
 
    newFact = CreateFactBySize(theEnv,oldFact->theProposition.length);
    newFact->whichDeftemplate = templatePtr;
+   SETUP_NEW_SWIFT_FACT(templatePtr, newFact)
+
    for (i = 0; i < oldFact->theProposition.length; i++)
      {
       if (oldFact->theProposition.contents[i].header->type != MULTIFIELD_TYPE)

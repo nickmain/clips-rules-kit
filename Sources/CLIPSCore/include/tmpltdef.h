@@ -84,6 +84,28 @@ struct deftemplateModule
 #include "constrnt.h"
 #include "factbld.h"
 
+// Swift callback to handle a new Fact being created
+typedef struct swiftTemplate SwiftTemplate;
+struct swiftTemplate {
+    void (*swiftNewFactHandler)(SwiftTemplate*, Fact*);
+    void (*handleTemplateRelease)(Deftemplate*);
+    void *instance;
+};
+#define SETUP_NEW_SWIFT_FACT(DEF_TEMPLATE_PTR, NEW_FACT_PTR) \
+    if (DEF_TEMPLATE_PTR != NULL) { \
+       SwiftTemplate *swiftTemplatePtr = DEF_TEMPLATE_PTR->swiftTemplate; \
+       if (swiftTemplatePtr != NULL) { \
+           (*swiftTemplatePtr->swiftNewFactHandler)(swiftTemplatePtr, NEW_FACT_PTR); \
+       } \
+    }
+#define SWIFT_TEMPLATE_RELEASE(DEF_TEMPLATE_PTR) \
+    if (DEF_TEMPLATE_PTR != NULL) { \
+       SwiftTemplate *swiftTemplatePtr = DEF_TEMPLATE_PTR->swiftTemplate; \
+       if (swiftTemplatePtr != NULL) { \
+           (*swiftTemplatePtr->handleTemplateRelease)(DEF_TEMPLATE_PTR); \
+       } \
+    }
+
 struct deftemplate
   {
    ConstructHeader header;
@@ -94,6 +116,7 @@ struct deftemplate
    unsigned short numberOfSlots;
    long busyCount;
    struct factPatternNode *patternNetwork;
+   SwiftTemplate *swiftTemplate; // To be filled in from Swift
    Fact *factList;
    Fact *lastFact;
   };

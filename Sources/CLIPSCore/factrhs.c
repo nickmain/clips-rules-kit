@@ -618,6 +618,9 @@ Fact *StringToFact(
    factPtr = CreateFactBySize(theEnv,numberOfFields);
    factPtr->whichDeftemplate = (Deftemplate *) assertArgs->value;
 
+   Deftemplate *theDeftemplate = factPtr->whichDeftemplate;
+   SETUP_NEW_SWIFT_FACT(theDeftemplate, factPtr)
+
    /*=============================================*/
    /* Copy the fields to the fact data structure. */
    /*=============================================*/

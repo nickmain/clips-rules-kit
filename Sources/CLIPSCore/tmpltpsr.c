@@ -184,6 +184,7 @@ bool ParseDeftemplate(
    newDeftemplate->lastFact = NULL;
    newDeftemplate->header.whichModule = (struct defmoduleItemHeader *)
                                         GetModuleItem(theEnv,NULL,DeftemplateData(theEnv)->DeftemplateModuleIndex);
+   newDeftemplate->swiftTemplate = NULL;
 
    /*================================*/
    /* Determine the number of slots. */

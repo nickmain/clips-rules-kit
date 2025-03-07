@@ -196,6 +196,7 @@ void AssertCommand(
      }
 
    newFact->whichDeftemplate = theDeftemplate;
+   SETUP_NEW_SWIFT_FACT(theDeftemplate, newFact)
 
    /*===================================================*/
    /* Evaluate the expression associated with each slot */

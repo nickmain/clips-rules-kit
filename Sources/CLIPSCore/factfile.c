@@ -951,6 +951,7 @@ static bool LoadSingleBinaryFact(
    
    newFact = CreateFactBySize(theEnv,slotCount);
    newFact->whichDeftemplate = theDeftemplate;
+   SETUP_NEW_SWIFT_FACT(theDeftemplate, newFact)
 
    if (slotCount == 0)
      {

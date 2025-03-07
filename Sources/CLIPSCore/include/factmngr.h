@@ -147,6 +147,14 @@ struct modifyCallFunctionItem
    void *context;
   };
 
+typedef struct swiftFact SwiftFact;
+struct swiftFact {
+    void (*handleAssert)(Fact*);
+    void (*handleRetract)(Fact*);
+    void (*handleRelease)(Fact*);
+    void *instance;
+};
+
 struct fact
   {
    union
@@ -165,6 +173,7 @@ struct fact
    Fact *nextTemplateFact;
    Multifield *basisSlots;
    Multifield theProposition;
+   SwiftFact *swiftFact;
   };
 
 struct factBuilder

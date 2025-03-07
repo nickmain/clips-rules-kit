@@ -8,8 +8,6 @@ func discardFunction(_ env: CLIPS.EnvironmentPtr?,
                      _ addr: UnsafeMutableRawPointer?) -> Bool {
     guard let addr else { return false }
 
-    // take a retained value in order to release it immediately
-    _ = Unmanaged<AnyObject>.fromOpaque(addr).takeRetainedValue()
-
+    Unmanaged<AnyObject>.fromOpaque(addr).release()
     return true
 }
