@@ -595,6 +595,7 @@ Deftemplate *CreateImpliedDeftemplate(
    newDeftemplate->busyCount = 0;
    newDeftemplate->watch = false;
    newDeftemplate->header.next = NULL;
+   newDeftemplate->swiftInstance = NULL;
 
 #if DEBUGGING_FUNCTIONS
    if (GetWatchItem(theEnv,"facts") == 1)

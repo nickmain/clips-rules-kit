@@ -11,6 +11,9 @@ let package = Package(
             name: "CLIPSCore",
             targets: ["CLIPSCore"]),
         .library(
+            name: "CLIPSCoreHelpers",
+            targets: ["CLIPSCoreHelpers"]),
+        .library(
             name: "CLIPSRules",
             targets: ["CLIPSRules"]),
         .library(
@@ -29,11 +32,15 @@ let package = Package(
             name: "CLIPSCore",
             dependencies: []),
         .target(
+            name: "CLIPSCoreHelpers",
+            dependencies: ["CLIPSCore"],
+            sources: ["src"]),
+        .target(
             name: "CLIPSConstructModels",
             dependencies: []),
         .target(
             name: "CLIPSRules",
-            dependencies: ["CLIPSCore"]),
+            dependencies: ["CLIPSCore", "CLIPSCoreHelpers"]),
         .target(
             name: "CLIPSInteraction",
             dependencies: ["CLIPSCore", "CLIPSRules"],

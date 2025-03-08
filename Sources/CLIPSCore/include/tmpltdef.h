@@ -96,6 +96,7 @@ struct deftemplate
    struct factPatternNode *patternNetwork;
    Fact *factList;
    Fact *lastFact;
+   void *swiftInstance; // Unmanaged reference to Swift object
   };
 
 struct templateSlot

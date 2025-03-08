@@ -508,6 +508,7 @@ static void UpdateDeftemplate(
    theDeftemplate->numberOfSlots = bdtPtr->numberOfSlots;
    theDeftemplate->factList = NULL;
    theDeftemplate->lastFact = NULL;
+   xtheDeftemplate->swiftInstance = NULL;
   }
 
 /************************************************/

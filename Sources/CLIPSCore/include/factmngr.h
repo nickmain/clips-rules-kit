@@ -165,6 +165,7 @@ struct fact
    Fact *nextTemplateFact;
    Multifield *basisSlots;
    Multifield theProposition;
+   void *swiftInstance; // Unmanaged reference to Swift object
   };
 
 struct factBuilder

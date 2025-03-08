@@ -22,7 +22,7 @@ extension CLIPS.Environment {
     public func createExternalAddress(_ object: AnyObject) -> CLIPS.ExternalAddress {
         // pass a retained value so that the external address owns a reference
         // count on the object
-        let objectPtr = UnsafeMutableRawPointer(Unmanaged.passRetained(object).toOpaque())
+        let objectPtr = Unmanaged.passRetained(object).toOpaque()
 
         return .init(ptr: CLIPSCore.CreateExternalAddress(self.ptr, objectPtr, UInt16(extAddrTypeCode)))
     }

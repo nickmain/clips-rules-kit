@@ -1535,6 +1535,7 @@ Fact *CreateFactBySize(
    theFact->nextTemplateFact = NULL;
    theFact->list = NULL;
    theFact->basisSlots = NULL;
+   theFact->swiftInstance = NULL;
 
    theFact->theProposition.length = size;
    theFact->theProposition.busyCount = 0;
