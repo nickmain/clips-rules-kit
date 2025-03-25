@@ -161,4 +161,11 @@ extension CLIPS.Environment {
         default: return
         }
     }
+
+    /// Copy a String, retain it as a CLIPS lexeme and return the char pointer
+    public func retainCStringPtr(from string: String) -> UnsafePointer<CChar> {
+        let lexPtr = CLIPSCore.CreateSymbol(ptr, string)!
+        CLIPSCore.RetainLexeme(ptr, lexPtr)
+        return lexPtr.pointee.contents
+    }
 }

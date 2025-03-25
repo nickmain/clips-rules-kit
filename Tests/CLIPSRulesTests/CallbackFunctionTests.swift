@@ -1,10 +1,10 @@
-// Copyright (c) 2024 David N Main
+// Copyright (c) 2025 David N Main
 
 import Testing
 @testable import CLIPSCore
 @testable import CLIPSRules
 
-final class TemplatePeerTests: CLIPSTest {
+final class CallbackFunctionTests: CLIPSTest {
 
     class FactPeer {
         init(factPtr: UnsafeMutablePointer<Fact>) {
@@ -30,8 +30,6 @@ final class TemplatePeerTests: CLIPSTest {
             let swiftFact = UnsafeMutablePointer<CLIPSCore.SwiftFact>.allocate(capacity: 1)
             let factPeerPtr = Unmanaged.passRetained(self).toOpaque()
             swiftFact.pointee.instance = factPeerPtr
-            swiftFact.pointee.handleAssert = handleAssert
-            swiftFact.pointee.handleRetract = handleRetract
             swiftFact.pointee.handleRelease = handleRelease
 
             factPtr.pointee.swiftFact = swiftFact

@@ -149,8 +149,6 @@ struct modifyCallFunctionItem
 
 typedef struct swiftFact SwiftFact;
 struct swiftFact {
-    void (*handleAssert)(Fact*);
-    void (*handleRetract)(Fact*);
     void (*handleRelease)(Fact*);
     void *instance;
 };
