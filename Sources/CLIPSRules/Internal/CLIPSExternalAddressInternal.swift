@@ -1,10 +1,9 @@
-// Copyright (C) 2023 David N Main - All Rights Reserved.
-// See LICENSE file for permitted uses.
+// Copyright (c) 2025 David N Main
 
 import Foundation
 
 // The discard function registered with the "swift" external address type
-func discardFunction(_ env: CLIPS.EnvironmentPtr?,
+func discardFunction(_ env: CLIPSEnvironment.Ptr?,
                      _ addr: UnsafeMutableRawPointer?) -> Bool {
     guard let addr else { return false }
 

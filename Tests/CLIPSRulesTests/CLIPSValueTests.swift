@@ -6,38 +6,38 @@ import Testing
 final class CLIPSValueTests: CLIPSTest {
 
     @Test
-    func testString() throws {
-        let value = try clips.eval("\"hello\"")
+    func testString() async throws {
+        let value = try await clips.eval("\"hello\"")
         #expect(value == .string("hello"))
     }
 
     @Test
-    func testFloat() throws {
-        let value = try clips.eval("3.4")
+    func testFloat() async throws {
+        let value = try await clips.eval("3.4")
         #expect(value == .float(3.4))
     }
 
     @Test
-    func testInteger() throws {
-        let value = try clips.eval("21")
+    func testInteger() async throws {
+        let value = try await clips.eval("21")
         #expect(value == .integer(21))
     }
 
     @Test
-    func testBool() throws {
-        let value = try clips.eval("TRUE")
+    func testBool() async throws {
+        let value = try await clips.eval("TRUE")
         #expect(value == .boolean(true))
     }
 
     @Test
-    func testSymbol() throws {
-        let value = try clips.eval("hello")
+    func testSymbol() async throws {
+        let value = try await clips.eval("hello")
         #expect(value == .symbol("hello"))
     }
 
     @Test
-    func testMultifield() throws {
-        let value = try clips.eval("(create$ 1 FALSE foo \"hello\" 9.1)")
+    func testMultifield() async throws {
+        let value = try await clips.eval("(create$ 1 FALSE foo \"hello\" 9.1)")
         #expect(value == .multifield([
             .integer(1), .boolean(false), .symbol("foo"), .string("hello"), .float(9.1)
         ]))

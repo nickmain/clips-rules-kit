@@ -1,18 +1,17 @@
-// Copyright (C) 2024 David N Main - All Rights Reserved.
-// See LICENSE file for permitted uses.
+// Copyright (c) 2023 David N Main
 
-import XCTest
-import CLIPSCore
+import Foundation
+import Testing
 import CLIPSRules
 
-final class InstanceTests: CLIPSTestBase {
+final class InstanceTests: CLIPSTest {
 
     // common instances for save and load tests
-    private func createSomeInstances(clips: CLIPS.Environment) throws -> Int {
-        try clips.build("(defclass foo (is-a USER) (slot a) (slot b))")
-        try clips.build("(defclass bar (is-a USER) (slot a) (slot b))")
+    private func createSomeInstances(clips: CLIPSEnvironment) async throws -> Int {
+        try await clips.build("(defclass foo (is-a USER) (slot a) (slot b))")
+        try await clips.build("(defclass bar (is-a USER) (slot a) (slot b))")
 
-        try clips.buildInstances { builder in
+        try await clips.buildInstances { builder in
             try builder.using(className: "foo") { bc in
                 for a in 1...3 {
                     for b in ["one", "two", "three"] {
@@ -37,64 +36,103 @@ final class InstanceTests: CLIPSTestBase {
     }
 
     // save current instances to temp file
-    private func saveSomeInstances(clips: CLIPS.Environment) -> (Int, URL) {
+    private func saveSomeInstances(clips: CLIPSEnvironment) async -> (Int, URL) {
         let fileManager = FileManager.default
         let directory = fileManager.temporaryDirectory
         let filename = "test.instances"
         let fileURL = directory.appendingPathComponent(filename)
 
-        let count = clips.saveInstances(to: fileURL.path(), scope: .visibleToCurrentModule)
+        let count = await clips.saveInstances(to: fileURL.path(), scope: .visibleToCurrentModule)
 
         return (count, fileURL)
     }
 
     // save current instances to temp binary file
-    private func saveSomeInstancesBinary(clips: CLIPS.Environment) -> (Int, URL) {
+    private func saveSomeInstancesBinary(clips: CLIPSEnvironment) async -> (Int, URL) {
         let fileManager = FileManager.default
         let directory = fileManager.temporaryDirectory
         let filename = "test.instances.bin"
         let fileURL = directory.appendingPathComponent(filename)
 
-        let count = clips.saveBinaryInstances(to: fileURL.path(), scope: .visibleToCurrentModule)
+        let count = await clips.saveBinaryInstances(to: fileURL.path(), scope: .visibleToCurrentModule)
 
         return (count, fileURL)
     }
 
-    private func compareInstances(clips1: CLIPS.Environment, clips2: CLIPS.Environment) {
-        let instances1 = clips1.getAllInstances()
-        let instances2 = clips2.getAllInstances()
-        XCTAssertEqual(instances1, instances2)
+    private func compareInstances(clips1: CLIPSEnvironment, clips2: CLIPSEnvironment) async throws {
+        struct Instance: Hashable {
+            let instanceName: String
+            let className: String
+            let instanceSlots: [String: CLIPSValue]
+
+            func hash(into hasher: inout Hasher) {
+                hasher.combine(instanceName)
+                hasher.combine(className)
+            }
+
+            static func == (lhs: Instance, rhs: Instance) -> Bool {
+                return lhs.instanceName == rhs.instanceName
+                    && lhs.className == rhs.className
+                    && lhs.instanceSlots == rhs.instanceSlots
+            }
+        }
+
+        func getAllInstances(_ clips: CLIPSEnvironment) async throws -> Set<Instance> {
+            var set = Set<Instance>()
+
+            var maybeInstance = await clips.getFirstInstance()
+            #expect(maybeInstance != nil)
+            while let instance = maybeInstance {
+                var slots = [String: CLIPSValue]()
+                for slotName in await instance.clipsClass.getSlotNames() {
+                    let slotValue = try await instance.directGetSlot(named: slotName)
+                    slots[slotName] = slotValue
+                }
+
+                set.insert(Instance(instanceName: instance.name,
+                                    className: instance.clipsClass.name,
+                                    instanceSlots: slots))
+                maybeInstance = await instance.getNextInstance()
+            }
+
+            return set
+        }
+
+        let instances1 = try await getAllInstances(clips)
+        let instances2 = try await getAllInstances(clips2)
+        #expect(instances1 == instances2)
     }
 
-    func testSanity() throws {
-        _ = try createSomeInstances(clips: clips)
+    @Test
+    func testSanity() async throws {
+        _ = try await createSomeInstances(clips: clips)
 
-        guard let instance = clips.findInstance(named: "foo-3-two") else {
-            XCTFail("Did not find instance foo-3-two")
+        guard let instance = await clips.findInstance(named: "foo-3-two") else {
+            Issue.record("Did not find instance foo-3-two")
             return
         }
 
-        XCTAssertEqual(try clips.directGetSlot(of: instance, named: "a"), CLIPS.Value.integer(3))
-        XCTAssertEqual(try clips.directGetSlot(of: instance, named: "b"), CLIPS.Value.string("two"))
+        await #expect(try instance.directGetSlot(named: "a") == CLIPSValue.integer(3))
+        await #expect(try instance.directGetSlot(named: "b") == CLIPSValue.string("two"))
 
-        try clips.directSetSlot(of: instance, named: "a", to: 43)
-        XCTAssertEqual(try clips.directGetSlot(of: instance, named: "a"), CLIPS.Value.integer(43))
-        XCTAssertEqual(try clips.directGetSlot(of: instance, named: "b"), CLIPS.Value.string("two"))
+        try await instance.directSetSlot(named: "a", to: .integer(43))
+        await #expect(try instance.directGetSlot(named: "a") == CLIPSValue.integer(43))
+        await #expect(try instance.directGetSlot(named: "b") == CLIPSValue.string("two"))
     }
 
-    func testSaveLoadBinaryInstances() throws {
-        let expectedCount = try createSomeInstances(clips: clips)
-        let (actualCount, fileURL) = saveSomeInstancesBinary(clips: clips)
+    @Test
+    func testSaveLoadBinaryInstances() async throws {
+        let expectedCount = try await createSomeInstances(clips: clips)
+        let (actualCount, fileURL) = await saveSomeInstancesBinary(clips: clips)
 
-        XCTAssertEqual(actualCount, expectedCount)
+        #expect(actualCount == expectedCount)
 
-        let engine2 = CLIPS.Engine()
-        let clips2 = engine2.environment
-        try clips2.build("(defclass foo (is-a USER) (slot a) (slot b))")
-        try clips2.build("(defclass bar (is-a USER) (slot a) (slot b))")
-        let count = clips2.loadBinaryInstances(from: fileURL.path())
-        XCTAssertEqual(count, expectedCount)
+        let clips2 = try CLIPSEnvironment()
+        try await clips2.build("(defclass foo (is-a USER) (slot a) (slot b))")
+        try await clips2.build("(defclass bar (is-a USER) (slot a) (slot b))")
+        let count = await clips2.loadBinaryInstances(from: fileURL.path())
+        #expect(count == expectedCount)
 
-        compareInstances(clips1: clips, clips2: clips2)
+        try await compareInstances(clips1: clips, clips2: clips2)
     }
 }
