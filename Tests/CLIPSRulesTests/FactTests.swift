@@ -4,6 +4,7 @@ import Foundation
 import Testing
 import CLIPSRules
 
+@Suite(.serialized)
 final class FactTests: CLIPSTest {
 
     // common facts for save and load tests
