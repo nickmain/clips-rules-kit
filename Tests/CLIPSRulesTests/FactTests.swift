@@ -1,18 +1,17 @@
-// Copyright (C) 2023 David N Main - All Rights Reserved.
-// See LICENSE file for permitted uses.
+// Copyright (c) 2025 David N Main
 
-import XCTest
-import CLIPSCore
+import Foundation
+import Testing
 import CLIPSRules
 
-final class FactTests: CLIPSTestBase {
+final class FactTests: CLIPSTest {
 
     // common facts for save and load tests
-    private func createSomeFacts(clips: CLIPS.Environment) throws -> Int {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        try clips.build("(deftemplate bar (slot a) (slot b))")
+    private func createSomeFacts(clips: CLIPSEnvironment) async throws -> Int {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        try await clips.build("(deftemplate bar (slot a) (slot b))")
 
-        try clips.buildFacts { builder in
+        try await clips.buildFacts { builder in
             try builder.using(template: "foo") { t in
                 for a in 1...3 {
                     for b in ["one", "two", "three"] {
@@ -37,121 +36,147 @@ final class FactTests: CLIPSTestBase {
     }
 
     // save current facts to temp file
-    private func saveSomeFacts(clips: CLIPS.Environment) -> (Int, URL) {
+    private func saveSomeFacts(clips: CLIPSEnvironment) async -> (Int, URL) {
         let fileManager = FileManager.default
         let directory = fileManager.temporaryDirectory
         let filename = "test.facts"
         let fileURL = directory.appendingPathComponent(filename)
 
-        let count = clips.saveFacts(to: fileURL.path(), scope: .visibleToCurrentModule)
+        let count = await clips.saveFacts(to: fileURL.path(), scope: .visibleToCurrentModule)
 
         return (count, fileURL)
     }
 
     // save current facts to temp binary file
-    private func saveSomeFactsBinary(clips: CLIPS.Environment) -> (Int, URL) {
+    private func saveSomeFactsBinary(clips: CLIPSEnvironment) async -> (Int, URL) {
         let fileManager = FileManager.default
         let directory = fileManager.temporaryDirectory
         let filename = "test.facts.bin"
         let fileURL = directory.appendingPathComponent(filename)
 
-        let count = clips.saveBinaryFacts(to: fileURL.path(), scope: .visibleToCurrentModule)
+        let count = await clips.saveBinaryFacts(to: fileURL.path(), scope: .visibleToCurrentModule)
 
         return (count, fileURL)
     }
 
-    private func compareFacts(clips1: CLIPS.Environment, clips2: CLIPS.Environment) {
-        let facts1 = clips1.getAllFacts()
-        let facts2 = clips2.getAllFacts()
-        XCTAssertEqual(facts1, facts2)
+    private func compareFacts(clips1: CLIPSEnvironment, clips2: CLIPSEnvironment) async throws {
+        struct Fact: Equatable {
+            let templateName: String
+            let slots: [String: CLIPSValue]
+        }
+
+        func allFacts(_ clips: CLIPSEnvironment) async throws -> [Fact] {
+            var facts = [Fact]()
+
+            var maybeFact = await clips.getFirstFact()
+            while let fact = maybeFact {
+                let template = fact.template
+                var slots = [String: CLIPSValue]()
+                for slotName in await template.getSlotNames() {
+                    slots[slotName] = try await fact.getSlot(named: slotName)
+                }
+
+                facts.append(.init(templateName: template.name, slots: slots))
+                maybeFact = await fact.getNextFact()
+            }
+
+            return facts
+        }
+
+        let facts1 = try await allFacts(clips1)
+        let facts2 = try await allFacts(clips2)
+        #expect(facts1 == facts2)
     }
 
-    func testSaveLoadBinaryFacts() throws {
-        let expectedCount = try createSomeFacts(clips: clips)
-        let (actualCount, fileURL) = saveSomeFactsBinary(clips: clips)
+    @Test
+    func testSaveLoadBinaryFacts() async throws {
+        let expectedCount = try await createSomeFacts(clips: clips)
+        let (actualCount, fileURL) = await saveSomeFactsBinary(clips: clips)
 
-        XCTAssertEqual(actualCount, expectedCount)
+        #expect(actualCount == expectedCount)
 
-        let engine2 = CLIPS.Engine()
-        let clips2 = engine2.environment
-        try clips2.build("(deftemplate foo (slot a) (slot b))")
-        try clips2.build("(deftemplate bar (slot a) (slot b))")
-        let count = clips2.loadBinaryFacts(from: fileURL.path())
-        XCTAssertEqual(count, expectedCount)
+        let clips2 = try CLIPSEnvironment()
+        try await clips2.build("(deftemplate foo (slot a) (slot b))")
+        try await clips2.build("(deftemplate bar (slot a) (slot b))")
+        let count = await clips2.loadBinaryFacts(from: fileURL.path())
+        #expect(count == expectedCount)
 
-        compareFacts(clips1: clips, clips2: clips2)
+        try await compareFacts(clips1: clips, clips2: clips2)
     }
 
-    func testLoadFacts() throws {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        try clips.build("(deftemplate bar (slot a) (slot b))")
+    @Test
+    func testLoadFacts() async throws {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        try await clips.build("(deftemplate bar (slot a) (slot b))")
 
         let filePath = try pathFor(sample: "save-comparison", ext: "txt")
-        let count = clips.loadFacts(from: filePath)
-        XCTAssertEqual(count, 18)
+        let count = await clips.loadFacts(from: filePath)
+        #expect(count == 18)
 
         // save the loaded facts and compare
-        let (_, fileURL) = saveSomeFacts(clips: clips)
+        let (_, fileURL) = await saveSomeFacts(clips: clips)
         let saveContent = try String(contentsOf: fileURL)
         let compContent = try String(contentsOfFile: filePath)
-        XCTAssertEqual(saveContent, compContent)
+        #expect(saveContent == compContent)
     }
 
-    func testLoadFactsFromString() throws {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        try clips.build("(deftemplate bar (slot a) (slot b))")
+    @Test
+    func testLoadFactsFromString() async throws {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        try await clips.build("(deftemplate bar (slot a) (slot b))")
 
         let compContent = try String(contentsOfFile: try pathFor(sample: "save-comparison", ext: "txt"))
-        let count = clips.loadFacts(fromString: compContent)
-        XCTAssertEqual(count, 18)
+        let count = await clips.loadFacts(fromString: compContent)
+        #expect(count == 18)
 
         // save the loaded facts and compare
-        let (_, fileURL) = saveSomeFacts(clips: clips)
+        let (_, fileURL) = await saveSomeFacts(clips: clips)
         let saveContent = try String(contentsOf: fileURL)
-        XCTAssertEqual(saveContent, compContent)
+        #expect(saveContent == compContent)
     }
 
-    func testSaveFacts() throws {
-        let expectedCount = try createSomeFacts(clips: clips)
-        let (actualCount, fileURL) = saveSomeFacts(clips: clips)
+    @Test
+    func testSaveFacts() async throws {
+        let expectedCount = try await createSomeFacts(clips: clips)
+        let (actualCount, fileURL) = await saveSomeFacts(clips: clips)
 
-        XCTAssertEqual(actualCount, expectedCount)
+        #expect(actualCount == expectedCount)
 
         let saveContent = try String(contentsOf: fileURL)
         let compContent = try String(contentsOfFile: try pathFor(sample: "save-comparison", ext: "txt"))
-        XCTAssertEqual(saveContent, compContent)
+        #expect(saveContent == compContent)
     }
 
-    func testRetract() throws {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        let fact = try clips.assert(fact: "(foo (a 23) (b apple))")
-        clips.retain(fact: fact)
-        XCTAssertTrue(clips.factExists(fact))
+    @Test
+    func testRetract() async throws {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        let fact = try await clips.assert(fact: "(foo (a 23) (b apple))")
+        #expect(fact.isAsserted)
 
-        try clips.retract(fact: fact)
-        XCTAssertFalse(clips.factExists(fact))
-
-        clips.release(fact: fact)
+        try await fact.retract()
+        #expect(!fact.isAsserted)
     }
 
-    func testPrettyPrint() throws {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        let fact = try clips.assert(fact: "(foo (a 23) (b apple))")
+    @Test
+    func testPrettyPrint() async throws {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        let fact = try await clips.assert(fact: "(foo (a 23) (b apple))")
 
-        let pretty = clips.prettyPrint(fact: fact)
-        XCTAssertEqual(pretty, "(foo \n   (a 23) \n   (b apple))")
+        let pretty = await fact.prettyPrint()
+        #expect(pretty == "(foo \n   (a 23) \n   (b apple))")
     }
 
-    func testAssertTemplate() throws {
-        try clips.build("(deftemplate foo (slot a) (slot b))")
-        try clips.build("(deftemplate bar (slot a) (slot b (default 10)))")
+    @Test
+    func testAssertTemplate() async throws {
+        try await clips.build("(deftemplate foo (slot a) (slot b))")
+        try await clips.build("(deftemplate bar (slot a) (slot b (default 10)))")
 
-        var foo1: CLIPS.Fact?
-        var foo2: CLIPS.Fact?
-        var bar1: CLIPS.Fact?
-        var bar2: CLIPS.Fact?
+        var foo1: CLIPSFact?
+        var foo2: CLIPSFact?
+        var bar1: CLIPSFact?
+        var bar2: CLIPSFact?
 
-        try clips.buildFacts { builder in
+        try await clips.buildFacts { builder in
             try builder.using(template: "foo") { t in
                 try t.put(slot: "a", value: .integer(45))
                 foo1 = try t.assertFact()
@@ -163,146 +188,149 @@ final class FactTests: CLIPSTestBase {
             }
         }
 
-        XCTAssertNotNil(foo1)
-        XCTAssertNotNil(foo2)
-        XCTAssertNotNil(bar1)
-        XCTAssertNotNil(bar2)
+        #expect(foo1 != nil)
+        #expect(foo2 != nil)
+        #expect(bar1 != nil)
+        #expect(bar2 != nil)
 
-        XCTAssertEqual(try clips.getSlot(of: foo1!, named: "a"),
-                       .integer(45))
-        XCTAssertEqual(try clips.getSlot(of: foo2!, named: "a"),
-                       .symbol("nil"))
-        XCTAssertEqual(try clips.getSlot(of: bar1!, named: "b"),
-                       .integer(10))
+        await #expect(try foo1!.getSlot(named: "a") == .integer(45))
+        await #expect(try foo2!.getSlot(named: "a") == .symbol("nil"))
+        await #expect(try bar1!.getSlot(named: "b") == .integer(10))
     }
 
-    func testSlotNames() throws {
-        try clips.build("""
+    @Test
+    func testSlotNames() async throws {
+        try await clips.build("""
             (deftemplate foo
               (slot bar)
               (slot bat))
             """)
 
-        let foo = clips.findFactTemplate(named: "foo")
+        let foo = await clips.findTemplate(named: "foo")
         guard let foo else {
-            XCTFail("could not find template")
+            Issue.record("could not find template")
             return
         }
 
-        let names = clips.getSlotNames(for: foo)
-        XCTAssertEqual(names, ["bar", "bat"])
+        let names = await foo.getSlotNames()
+        #expect(names == ["bar", "bat"])
 
         // implied name
-        let fact = try clips.assert(fact: "(hello world again)")
-        let template = clips.getTemplate(for: fact)
-        let name2 = clips.getSlotNames(for: template)
-        XCTAssertEqual(name2, [CLIPS.FactTemplate.IMPLIED_SLOT_NAME])
+        let fact = try await clips.assert(fact: "(hello world again)")
+        let template = fact.template
+        let name2 = await template.getSlotNames()
+        #expect(name2 == [CLIPSTemplate.IMPLIED_SLOT_NAME])
     }
 
-    func testTemplateName() throws {
-        try clips.build("(deftemplate foo (slot a))")
+    @Test
+    func testTemplateName() async throws {
+        try await clips.build("(deftemplate foo (slot a))")
 
-        let foo1 = try clips.assert(fact: "(foo (a 1))")
-        let foo = clips.findFactTemplate(named: "foo")
-        let template = clips.getTemplate(for: foo1)
-        let name = clips.getName(of: template)
+        let foo1 = try await clips.assert(fact: "(foo (a 1))")
+        let foo = await clips.findTemplate(named: "foo")
+        let template = foo1.template
+        let name = template.name
 
-        XCTAssertEqual(template, foo)
-        XCTAssertEqual(name, "foo")
+        #expect(template == foo)
+        #expect(name == "foo")
 
-        let fact = try clips.assert(fact: "(hello world again)")
-        let template2 = clips.getTemplate(for: fact)
-        let name2 = clips.getName(of: template2)
-        XCTAssertEqual(name2, "hello")
+        let fact = try await clips.assert(fact: "(hello world again)")
+        let template2 = fact.template
+        let name2 = template2.name
+        #expect(name2 == "hello")
     }
 
-    func testListingFacts() throws {
-        try clips.build("(deftemplate foo (slot a))")
-        try clips.build("(deftemplate bar (slot a))")
+    @Test
+    func testListingFacts() async throws {
+        try await clips.build("(deftemplate foo (slot a))")
+        try await clips.build("(deftemplate bar (slot a))")
 
-        let foo1 = try clips.assert(fact: "(foo (a 1))")
-        let bar1 = try clips.assert(fact: "(bar (a 1))")
-        let foo2 = try clips.assert(fact: "(foo (a 2))")
-        let bar2 = try clips.assert(fact: "(bar (a 2))")
+        let foo1 = try await clips.assert(fact: "(foo (a 1))")
+        let bar1 = try await clips.assert(fact: "(bar (a 1))")
+        let foo2 = try await clips.assert(fact: "(foo (a 2))")
+        let bar2 = try await clips.assert(fact: "(bar (a 2))")
 
-        var fact: CLIPS.Fact? = nil
-        fact = clips.getNextFact(after: fact)
-        XCTAssertEqual(fact, foo1)
-        fact = clips.getNextFact(after: fact)
-        XCTAssertEqual(fact, bar1)
-        fact = clips.getNextFact(after: fact)
-        XCTAssertEqual(fact, foo2)
-        fact = clips.getNextFact(after: fact)
-        XCTAssertEqual(fact, bar2)
-        fact = clips.getNextFact(after: fact)
-        XCTAssertNil(fact)
+        var fact: CLIPSFact? = nil
+        fact = await clips.getFirstFact()
+        #expect(fact == foo1)
+        fact = await fact?.getNextFact()
+        #expect(fact == bar1)
+        fact = await fact?.getNextFact()
+        #expect(fact == foo2)
+        fact = await fact?.getNextFact()
+        #expect(fact == bar2)
+        fact = await fact?.getNextFact()
+        #expect(fact == nil)
 
-        let foo = clips.findFactTemplate(named: "foo")
-        let bar = clips.findFactTemplate(named: "bar")
+        let foo = await clips.findTemplate(named: "foo")
+        let bar = await clips.findTemplate(named: "bar")
         guard let foo, let bar else {
-            XCTFail("could not find templates")
+            Issue.record("could not find templates")
             return
         }
 
-        fact = clips.getNextFact(in: foo, after: nil)
-        XCTAssertEqual(fact, foo1)
-        fact = clips.getNextFact(in: foo, after: fact)
-        XCTAssertEqual(fact, foo2)
-        fact = clips.getNextFact(in: foo, after: fact)
-        XCTAssertNil(fact)
+        fact = await foo.getFirstFact()
+        #expect(fact == foo1)
+        fact = await foo.getNextFact(after: fact!)
+        #expect(fact == foo2)
+        fact = await foo.getNextFact(after: fact!)
+        #expect(fact == nil)
 
-        fact = clips.getNextFact(in: bar, after: nil)
-        XCTAssertEqual(fact, bar1)
-        fact = clips.getNextFact(in: bar, after: fact)
-        XCTAssertEqual(fact, bar2)
-        fact = clips.getNextFact(in: bar, after: fact)
-        XCTAssertNil(fact)
+        fact = await bar.getFirstFact()
+        #expect(fact == bar1)
+        fact = await bar.getNextFact(after: fact!)
+        #expect(fact == bar2)
+        fact = await bar.getNextFact(after: fact!)
+        #expect(fact == nil)
     }
 
-    func testFindTemplate() throws {
-        try clips.build("""
+    @Test
+    func testFindTemplate() async throws {
+        try await clips.build("""
             (deftemplate foo
               (slot bar)
               (slot bat))
             """)
 
-        let foo = clips.findFactTemplate(named: "foo")
-        let bar = clips.findFactTemplate(named: "bar")
+        let foo = await clips.findTemplate(named: "foo")
+        let bar = await clips.findTemplate(named: "bar")
 
-        XCTAssertNotNil(foo)
-        XCTAssertNil(bar)
+        #expect(foo != nil)
+        #expect(bar == nil)
     }
 
-    func testGetImpliedSlot() throws {
-        let fact = try clips.assert(fact: "(foo bar 23 \"hello\")")
+    @Test
+    func testGetImpliedSlot() async throws {
+        let fact = try await clips.assert(fact: "(foo bar 23 \"hello\")")
 
-        let slot = try clips.getSlot(of: fact, named: CLIPS.FactTemplate.IMPLIED_SLOT_NAME)
+        let slot = try await fact.getSlot(named: CLIPSTemplate.IMPLIED_SLOT_NAME)
 
-        XCTAssertEqual(slot, .multifield([.symbol("bar"), .integer(23), .string("hello")]))
+        #expect(slot == .multifield([.symbol("bar"), .integer(23), .string("hello")]))
     }
 
-    func testGetNamedSlot() throws {
-        try clips.build("""
+    @Test
+    func testGetNamedSlot() async throws {
+        try await clips.build("""
             (deftemplate foo
               (slot bar)
               (slot bat))
             """)
 
-        let fact = try clips.assert(fact: "(foo (bar 23) (bat apple))")
+        let fact = try await clips.assert(fact: "(foo (bar 23) (bat apple))")
 
-        let bar = try clips.getSlot(of: fact, named: "bar")
-        let bat = try clips.getSlot(of: fact, named: "bat")
+        let bar = try await fact.getSlot(named: "bar")
+        let bat = try await fact.getSlot(named: "bat")
 
-        XCTAssertEqual(bar, .integer(23))
-        XCTAssertEqual(bat, .symbol("apple"))
+        #expect(bar == .integer(23))
+        #expect(bat == .symbol("apple"))
 
         do {
-            _ = try clips.getSlot(of: fact, named: "baz")
-        } catch CLIPS.GetSlotError.slotNotFound {
+            _ = try await fact.getSlot(named: "baz")
+        } catch CLIPSGetSlotError.slotNotFound {
             // Success
             return
         }
 
-        XCTFail("did not throw slotNotFound")
+        Issue.record("did not throw slotNotFound")
     }
 }

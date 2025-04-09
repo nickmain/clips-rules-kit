@@ -5,14 +5,14 @@ import CLIPSCore
 import CLIPSRules
 
 public struct CLIPSUI {
-    internal let engine: CLIPS.Engine
-
-    public init(engine: CLIPS.Engine) {
-        self.engine = engine
-    }
-
-    public init() {
-        self.init(engine: .init())
-    }
+//    internal let engine: CLIPS.Engine
+//
+//    public init(engine: CLIPS.Engine) {
+//        self.engine = engine
+//    }
+//
+//    public init() {
+//        self.init(engine: .init())
+//    }
 
 }

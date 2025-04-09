@@ -1,143 +1,153 @@
 // Copyright (c) 2023 David N Main
 
-import XCTest
+import Testing
 import CLIPSRules
 
-final class UserDefinedFunctionTests: CLIPSTestBase {
+final class UserDefinedFunctionTests: CLIPSTest {
 
-    func testSanity() throws {
-        try clips.addUserDefinedFunction(named: "foo") { _ in
+    @Test
+    func testSanity() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { _ in
             print("HELLO WORLD!!")
         }
 
-        try clips.eval("(foo)")
+        try await clips.eval("(foo)")
     }
 
-    func testGettingArguments() throws {
-        try clips.addUserDefinedFunction(named: "foo") { invocation in
-            XCTAssertEqual(invocation.getArguments(), [.integer(1), .boolean(false), .multifield([.symbol("a"), .integer(2)])])
+    @Test
+    func testGettingArguments() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { invocation in
+            #expect(invocation.getArguments() == [.integer(1), .boolean(false), .multifield([.symbol("a"), .integer(2)])])
         }
-        try clips.eval("(foo 1 FALSE (create$ a 2))")
+        try await clips.eval("(foo 1 FALSE (create$ a 2))")
     }
 
-    func testSettingResult() throws {
-        try clips.addUserDefinedFunction(named: "foo") { invocation in
+    @Test
+    func testSettingResult() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { invocation in
             invocation.setReturn(value: .string("hello"))
         }
-        let result = try clips.eval("(foo)")
-        XCTAssertEqual(result, .string("hello"))
+        let result = try await clips.eval("(foo)")
+        #expect(result == .string("hello"))
 
-        try clips.addUserDefinedFunction(named: "foo2") { invocation in
+        try await clips.addUserDefinedFunction(named: "foo2") { invocation in
             invocation.setReturn(value: .multifield([.boolean(true), .symbol("bar")]))
         }
-        let result2 = try clips.eval("(foo2)")
-        XCTAssertEqual(result2, .multifield([.boolean(true), .symbol("bar")]))
+        let result2 = try await clips.eval("(foo2)")
+        #expect(result2 == .multifield([.boolean(true), .symbol("bar")]))
     }
 
     // test setting the error
-    func testSetError() throws {
-        try clips.addUserDefinedFunction(named: "foo") { invocation in
+    @Test
+    func testSetError() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { invocation in
             invocation.setError(.multifield([.integer(23), .symbol("oops")]))
         }
 
-        try clips.eval("(foo)")
-        let error = try clips.eval("(get-error)")
-        XCTAssertEqual(error, .multifield([.integer(23), .symbol("oops")]))
+        try await clips.eval("(foo)")
+        let error = try await clips.eval("(get-error)")
+        #expect(error == .multifield([.integer(23), .symbol("oops")]))
     }
 
     // test throw error
-    func testThrowError() throws {
-        try clips.addUserDefinedFunction(named: "foo") { invocation in
+    @Test
+    func testThrowError() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { invocation in
             invocation.throwError()
         }
 
         do {
-            try clips.eval("(foo)")
-        } catch CLIPS.EvalError.processingError {
+            try await clips.eval("(foo)")
+        } catch CLIPSEvalError.processingError {
             // success
             return
         }
 
-        XCTFail("error was not thrown")
+        Issue.record("error was not thrown")
     }
 
     // test argument count property
-    func testArgCount() throws {
-        try clips.addUserDefinedFunction(named: "foo") { invocation in
-            XCTAssertEqual(invocation.argCount, 3, "arg count")
+    @Test
+    func testArgCount() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { invocation in
+            #expect(invocation.argCount == 3)
         }
 
-        try clips.eval("(foo 1 2 3)")
+        try await clips.eval("(foo 1 2 3)")
     }
 
     // test argument type constraints
-    func testArgTypes() throws {
-        func badCall(_ expression: String, _ message: String) throws {
+    @Test
+    func testArgTypes() async throws {
+        func badCall(_ expression: String, _ message: String) async throws {
             do {
-                try clips.eval(expression)
-                XCTFail(message)
-            } catch CLIPS.EvalError.parseError {
+                try await clips.eval(expression)
+                Issue.record(Comment(rawValue: message))
+            } catch CLIPSEvalError.parseError {
                 // success
+                print("❌ Caught error")
             }
         }
 
-        try clips.addUserDefinedFunction(named: "foo", argTypes: .init(defaultTypes: [.double, .symbol])) { _ in
-            print("HELLO WORLD!!")
+        try await clips.addUserDefinedFunction(named: "foo", argTypes: .init(defaultTypes: [.double, .symbol])) { _ in
+            print("✅ HELLO WORLD!!")
         }
 
-        try clips.eval("(foo 1.0 bar 3.4 baz)")
-        try badCall("(foo 1)", "accepted int")
-        try badCall("(foo \"hello\")", "accepted string")
+        try await clips.eval("(foo 1.0 bar 3.4 baz)")
+        try await badCall("(foo 1)", "accepted int")
+        try await badCall("(foo \"hello\")", "accepted string")
 
-        try clips.addUserDefinedFunction(named: "bar", argTypes: .init(defaultTypes: [.symbol, .fact], positionalTypes: [[.symbol],[.boolean]])) { _ in
-            print("HELLO WORLD!!")
+        try await clips.addUserDefinedFunction(named: "bar", argTypes: .init(defaultTypes: [.symbol, .fact], positionalTypes: [[.symbol],[.boolean]])) { _ in
+            print("✅ HELLO WORLD!!")
         }
 
-        try clips.eval("(bar a TRUE b)")
-        try badCall("(bar a TRUE 1)", "accepted int")
-        try badCall("(bar a TRUE \"hello\")", "accepted string")
+        try await clips.eval("(bar a TRUE b)")
+        try await badCall("(bar a TRUE 1)", "accepted int")
+        try await badCall("(bar a TRUE \"hello\")", "accepted string")
 
         // Note: omitting a position in order to use default types appears
         // to be broken in CLIPS
     }
 
     // test arg count constraints
-    func testArgCounts() throws {
-        try clips.addUserDefinedFunction(named: "foo", argCount: 1...3) { _ in
+    @Test
+    func testArgCounts() async throws {
+        try await clips.addUserDefinedFunction(named: "foo", argCount: 1...3) { _ in
             print("HELLO WORLD!!")
         }
 
-        try clips.eval("(foo 1)")
-        try clips.eval("(foo 1 2)")
-        try clips.eval("(foo 1 2 3)")
+        try await clips.eval("(foo 1)")
+        try await clips.eval("(foo 1 2)")
+        try await clips.eval("(foo 1 2 3)")
 
         do {
-            try clips.eval("(foo 1 2 3 4)")
-            XCTFail("4 args not rejected")
-        } catch CLIPS.EvalError.parseError {
+            try await clips.eval("(foo 1 2 3 4)")
+            Issue.record("4 args not rejected")
+        } catch CLIPSEvalError.parseError {
             // success - 4 args should be rejected
         }
 
         do {
-            try clips.eval("(foo)")
-            XCTFail("zero args not rejected")
-        } catch CLIPS.EvalError.parseError {
+            try await clips.eval("(foo)")
+            Issue.record("zero args not rejected")
+        } catch CLIPSEvalError.parseError {
             // success - zero args should be rejected
         }
     }
 
     // test that duplicate UDF names are rejected
-    func testDuplicateNames() throws {
-        try clips.addUserDefinedFunction(named: "foo") { _ in
+    @Test
+    func testDuplicateNames() async throws {
+        try await clips.addUserDefinedFunction(named: "foo") { _ in
             print("HELLO WORLD!!")
         }
 
         do {
-            try clips.addUserDefinedFunction(named: "foo") { _ in
+            try await clips.addUserDefinedFunction(named: "foo") { _ in
                 print("YET AGAIN")
             }
-            XCTFail("Duplicate UDF name foo not rejected")
-        } catch CLIPS.AddUDFError.functionNameInUse {
+            Issue.record("Duplicate UDF name foo not rejected")
+        } catch CLIPSAddUDFError.functionNameInUse {
             // success
         }
     }
