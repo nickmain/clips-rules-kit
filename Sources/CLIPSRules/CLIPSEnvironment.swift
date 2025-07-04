@@ -101,6 +101,12 @@ public actor CLIPSEnvironment {
         CLIPSCore.DestroyEnvironment(ptr)
     }
 
+    // MARK: - Isolated Callback
+
+    public func perform<T, E: Error>(_ callback: (isolated CLIPSEnvironment) throws(E) -> T) rethrows -> T {
+        try callback(self)
+    }
+
     // MARK: - Misc
 
     /// Print the CLIPS banner
@@ -268,8 +274,6 @@ public actor CLIPSEnvironment {
             []
         }
     }
-
-    // MARK: - External Addresses
 
     // MARK: - Templates
 

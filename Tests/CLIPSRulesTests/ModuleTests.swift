@@ -9,10 +9,12 @@ final class ModuleTests: CLIPSTest {
     func testSanity() async throws {
         #expect(await clips.currentModule.name == "MAIN")
 
-        try await clips.build("(defmodule Apple (export ?ALL))")
-        try await clips.build("(defmodule Banana (export ?ALL))")
-        try await clips.build("(deftemplate Apple::foo (slot a))")
-        try await clips.build("(deftemplate Banana::bar (slot a))")
+        try await clips.perform {
+            try $0.build("(defmodule Apple (export ?ALL))")
+            try $0.build("(defmodule Banana (export ?ALL))")
+            try $0.build("(deftemplate Apple::foo (slot a))")
+            try $0.build("(deftemplate Banana::bar (slot a))")
+        }
 
         try await clips.build("""
             (defmodule Cherry
@@ -26,8 +28,8 @@ final class ModuleTests: CLIPSTest {
         #expect(await clips.currentModule.name == "Cherry")
 
         // facts
-        #expect(await foo.template.module == "Apple")
-        #expect(await bar.template.module == "Banana")
+        #expect(foo.template.module == "Apple")
+        #expect(bar.template.module == "Banana")
 
         // templates
         #expect(await clips.findTemplate(named: "foo")?.module == "Apple")
